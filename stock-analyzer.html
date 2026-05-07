@@ -293,8 +293,8 @@ body {
 }
 .sr-list li:last-child { border-bottom: none; }
 .sr-list li::before { flex-shrink: 0; }
-.sr-card.strengths .sr-list li::before { content: '✓'; color: #34d399; }
-.sr-card.risks .sr-list li::before { content: '⚠'; color: #f87171; }
+.sr-card.strengths .sr-list li::before { content: '\2713'; color: #34d399; }
+.sr-card.risks .sr-list li::before { content: '\26a0'; color: #f87171; }
 
 .disclaimer {
   background: #0a0e1a;
@@ -321,7 +321,7 @@ body {
     <input type="text" id="stockInput" placeholder="Enter NSE symbol or company name (e.g. RELIANCE, Infosys, TCS)" autocomplete="off" />
     <button class="search-btn" id="analyzeBtn" onclick="startAnalysis()">Analyze</button>
   </div>
-  <p class="hint">Examples: <span>RELIANCE</span> · <span>HDFCBANK</span> · <span>INFY</span> · <span>BAJFINANCE</span> · <span>TITAN</span></p>
+  <p class="hint">Examples: <span>RELIANCE</span> · <span>HDFCBANK</span> · <span>INFY</span> · <span>BAJFINANCE</span> · <span>HUDCO</span></p>
 </div>
 
 <div class="container">
@@ -391,11 +391,14 @@ async function resolveSymbol(input) {
   if (input.endsWith('.NS') || input.endsWith('.BO')) return input;
   const direct = input + '.NS';
   try {
-    const test = await fetchJSON(`https://query1.finance.yahoo.com/v10/finance/quoteSummary/${direct}?modules=summaryDetail`);
+    const test = await fetchJSON('https://query1.finance.yahoo.com/v10/finance/quoteSummary/' + direct + '?modules=summaryDetail');
     if (test.quoteSummary && test.quoteSummary.result) return direct;
   } catch {}
-  const searchUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(input)}&quotesCount=10&newsCount=0`;
-  const res = await fetchJSON(searchUrl);
+  const searchUrl = new URL('https://query1.finance.yahoo.com/v1/finance/search');
+  searchUrl.searchParams.set('q', input);
+  searchUrl.searchParams.set('quotesCount', '10');
+  searchUrl.searchParams.set('newsCount', '0');
+  const res = await fetchJSON(searchUrl.toString());
   const quotes = res.quotes || [];
   const indian = quotes.find(q => (q.symbol||'').endsWith('.NS') || (q.symbol||'').endsWith('.BO'));
   if (indian) return indian.symbol;
@@ -411,7 +414,7 @@ async function fetchStockData(symbol) {
     'incomeStatementHistoryQuarterly', 'majorHoldersBreakdown', 'price',
     'assetProfile', 'calendarEvents'
   ].join(',');
-  const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=${modules}`;
+  const url = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary/' + symbol + '?modules=' + modules;
   const res = await fetchJSON(url);
   if (!res.quoteSummary || !res.quoteSummary.result || !res.quoteSummary.result[0]) {
     throw new Error('No data found for symbol: ' + symbol);
@@ -484,7 +487,6 @@ function analyzeStock(data, symbol) {
   const ocf = v(fd, 'operatingCashflow');
   const fcf = v(fd, 'freeCashflow');
   const revenue = v(fd, 'totalRevenue');
-  const revenueGrowth = v(fd, 'revenueGrowth');
   const grossMargin = v(fd, 'grossMargins');
   const opMargin = v(fd, 'operatingMargins');
   const ebitdaMargin = v(fd, 'ebitdaMargins');
@@ -606,23 +608,23 @@ function analyzeStock(data, symbol) {
   else { verdict = 'Does Not Qualify'; verdictDesc = 'Below quality threshold. Significant weaknesses in fundamentals. Not suitable for quality-focused portfolio.'; }
 
   const strengths = [], risks = [];
-  if (rev3yCagr != null && rev3yCagr > 15) strengths.push(`Revenue 3Y CAGR: ${rev3yCagr.toFixed(1)}% — strong top-line growth`);
-  if (pat3yCagr != null && pat3yCagr > 20) strengths.push(`PAT 3Y CAGR: ${pat3yCagr.toFixed(1)}% — accelerating bottom-line`);
-  if (deRatio != null && deRatio < 0.3) strengths.push(`Debt/Equity: ${deRatio.toFixed(2)} — nearly debt-free balance sheet`);
+  if (rev3yCagr != null && rev3yCagr > 15) strengths.push('Revenue 3Y CAGR: ' + rev3yCagr.toFixed(1) + '% — strong top-line growth');
+  if (pat3yCagr != null && pat3yCagr > 20) strengths.push('PAT 3Y CAGR: ' + pat3yCagr.toFixed(1) + '% — accelerating bottom-line');
+  if (deRatio != null && deRatio < 0.3) strengths.push('Debt/Equity: ' + deRatio.toFixed(2) + ' — nearly debt-free balance sheet');
   if (isNetCash === true) strengths.push('Net Cash company — cash exceeds total debt');
-  if (roce != null && roce > 20) strengths.push(`ROCE: ${roce.toFixed(1)}% — superior capital efficiency`);
-  if (roe != null && roe * 100 > 18) strengths.push(`ROE: ${pct(roe)} — strong return for shareholders`);
-  if (cfoPat != null && cfoPat > 0.9) strengths.push(`CFO/PAT: ${cfoPat.toFixed(2)} — high earnings quality`);
-  if (profitMargin != null && profitMargin > 0.15) strengths.push(`PAT Margin: ${pct(profitMargin)} — premium profitability`);
-  if (promoterHolding != null && promoterHolding > 0.5) strengths.push(`Promoter Holding: ${pct(promoterHolding)} — strong insider conviction`);
+  if (roce != null && roce > 20) strengths.push('ROCE: ' + roce.toFixed(1) + '% — superior capital efficiency');
+  if (roe != null && roe * 100 > 18) strengths.push('ROE: ' + pct(roe) + ' — strong return for shareholders');
+  if (cfoPat != null && cfoPat > 0.9) strengths.push('CFO/PAT: ' + cfoPat.toFixed(2) + ' — high earnings quality');
+  if (profitMargin != null && profitMargin > 0.15) strengths.push('PAT Margin: ' + pct(profitMargin) + ' — premium profitability');
+  if (promoterHolding != null && promoterHolding > 0.5) strengths.push('Promoter Holding: ' + pct(promoterHolding) + ' — strong insider conviction');
 
   if (rev3yCagr == null || rev3yCagr < 10) risks.push('Weak or unavailable revenue growth data');
-  if (deRatio != null && deRatio > 0.8) risks.push(`High leverage (D/E: ${deRatio.toFixed(2)}) — financial risk`);
-  if (currentRatio != null && currentRatio < 1.2) risks.push(`Low current ratio (${currentRatio.toFixed(2)}) — liquidity concern`);
+  if (deRatio != null && deRatio > 0.8) risks.push('High leverage (D/E: ' + deRatio.toFixed(2) + ') — financial risk');
+  if (currentRatio != null && currentRatio < 1.2) risks.push('Low current ratio (' + currentRatio.toFixed(2) + ') — liquidity concern');
   if (fcf != null && fcf < 0) risks.push('Negative free cash flow — capital intensive or cash burn');
   if (cfoPat != null && cfoPat < 0.7) risks.push('CFO below PAT — possible earnings quality concern');
-  if (peg != null && peg > 2) risks.push(`High PEG ratio (${peg.toFixed(2)}) — expensive relative to growth`);
-  if (pe != null && pe > 60) risks.push(`Elevated PE (${pe.toFixed(0)}x) — valuation risk`);
+  if (peg != null && peg > 2) risks.push('High PEG ratio (' + peg.toFixed(2) + ') — expensive relative to growth');
+  if (pe != null && pe > 60) risks.push('Elevated PE (' + pe.toFixed(0) + 'x) — valuation risk');
   if (promoterHolding != null && promoterHolding < 0.35) risks.push('Low promoter holding — limited insider conviction');
   if (revDeclines >= 2) risks.push('Multiple revenue declines in recent years');
   if (patSeries.some(x => x < 0)) risks.push('Loss-making years in history — PAT volatility');
@@ -699,7 +701,7 @@ function analyzeStock(data, symbol) {
         { name: 'Earnings Growth (YoY)', val: earningsGrowth != null ? pct(earningsGrowth) : 'N/A', status: earningsGrowth != null ? (earningsGrowth > 0.15 ? 'pass' : earningsGrowth > 0 ? 'warn' : 'fail') : 'na', threshold: '' },
       ]
     },
-    { icon: '🏛️', title: 'Phase 9 — Governance & Promoters', status: promoterHolding != null && promoterHolding > 0.5 ? 'pass' : 'warn',
+    { icon: '🏛️', title: 'Phase 9 — Governance', status: promoterHolding != null && promoterHolding > 0.5 ? 'pass' : 'warn',
       metrics: [
         { name: 'Promoter / Insider Holding', val: promoterHolding != null ? pct(promoterHolding) : 'N/A', status: promoterHolding != null ? (promoterHolding > 0.5 ? 'pass' : promoterHolding > 0.35 ? 'warn' : 'fail') : 'na', threshold: '> 50%' },
         { name: 'Institutional Holding', val: institutionalHolding != null ? pct(institutionalHolding) : 'N/A', status: institutionalHolding != null ? (institutionalHolding > 0.25 ? 'pass' : institutionalHolding > 0.1 ? 'warn' : 'fail') : 'na', threshold: 'Increasing' },
@@ -727,7 +729,7 @@ function analyzeStock(data, symbol) {
         { name: 'Valuation (5)', val: scoreBreakdown.valuation + '/5', status: scoreBreakdown.valuation >= 4 ? 'pass' : scoreBreakdown.valuation >= 2 ? 'warn' : 'fail', threshold: '' },
       ]
     },
-    { icon: '📡', title: 'Phase 12 — Smart Money Signals', status: currentPrice && v(sd, 'twoHundredDayAverage') && currentPrice > v(sd, 'twoHundredDayAverage') ? 'pass' : 'warn',
+    { icon: '📡', title: 'Phase 12 — Smart Money', status: currentPrice && v(sd, 'twoHundredDayAverage') && currentPrice > v(sd, 'twoHundredDayAverage') ? 'pass' : 'warn',
       metrics: [
         { name: 'Price vs 200 DMA', val: currentPrice && v(sd, 'twoHundredDayAverage') ? (currentPrice > v(sd, 'twoHundredDayAverage') ? '✓ Above 200DMA' : '✗ Below 200DMA') : 'N/A', status: currentPrice && v(sd, 'twoHundredDayAverage') ? (currentPrice > v(sd, 'twoHundredDayAverage') ? 'pass' : 'fail') : 'na', threshold: 'Above 200DMA' },
         { name: 'Price vs 50 DMA', val: currentPrice && v(sd, 'fiftyDayAverage') ? (currentPrice > v(sd, 'fiftyDayAverage') ? '✓ Above 50DMA' : '✗ Below 50DMA') : 'N/A', status: currentPrice && v(sd, 'fiftyDayAverage') ? (currentPrice > v(sd, 'fiftyDayAverage') ? 'pass' : 'warn') : 'na', threshold: 'Above 50DMA' },
@@ -749,7 +751,7 @@ function statusLabel(s) { return { pass: '✓ Pass', warn: '~ Warn', fail: '✗ 
 
 function renderResults(a) {
   const el = document.getElementById('results');
-  const priceChangeHtml = a.priceChange != null ? `<div class="price-change ${a.priceChange >= 0 ? 'up' : 'down'}">${a.priceChange >= 0 ? '▲' : '▼'} ${Math.abs(a.priceChange).toFixed(2)}% today</div>` : '';
+  const priceChangeHtml = a.priceChange != null ? '<div class="price-change ' + (a.priceChange >= 0 ? 'up' : 'down') + '">' + (a.priceChange >= 0 ? '▲' : '▼') + ' ' + Math.abs(a.priceChange).toFixed(2) + '% today</div>' : '';
 
   const phasesHtml = a.phases.map((p, i) => `
     <div class="phase-card" id="phase${i}">
@@ -760,12 +762,7 @@ function renderResults(a) {
         <span class="phase-chevron">▼</span>
       </div>
       <div class="phase-body">
-        ${p.metrics.map(m => `
-          <div class="metric-row">
-            <span class="metric-name">${m.name}${m.threshold ? ` <em style="opacity:.45;font-size:10px">· ${m.threshold}</em>` : ''}</span>
-            <span class="metric-val">${m.val}</span>
-            <span class="metric-status ${msClass(m.status)}">${m.status === 'pass' ? '✓' : m.status === 'fail' ? '✗' : m.status === 'warn' ? '~' : '—'}</span>
-          </div>`).join('')}
+        ${p.metrics.map(m => '<div class="metric-row"><span class="metric-name">' + m.name + (m.threshold ? ' <em style="opacity:.45;font-size:10px">· ' + m.threshold + '</em>' : '') + '</span><span class="metric-val">' + m.val + '</span><span class="metric-status ' + msClass(m.status) + '">' + (m.status === 'pass' ? '✓' : m.status === 'fail' ? '✗' : m.status === 'warn' ? '~' : '—') + '</span></div>').join('')}
       </div>
     </div>`).join('');
 
@@ -792,76 +789,40 @@ function renderResults(a) {
     { l: 'Verdict', v: a.verdict, c: a.totalScore >= 70 ? 'green' : a.totalScore >= 60 ? 'yellow' : 'red' },
   ];
 
-  el.innerHTML = `
-    <div class="stock-header">
-      <div>
-        <div class="stock-name">${a.companyName}</div>
-        <div class="stock-sub">${a.symbol} · ${a.exchange} · ${a.sector}</div>
-      </div>
-      <div class="stock-price">
-        <div class="price-val">${a.currentPrice != null ? '₹' + a.currentPrice.toFixed(2) : 'N/A'}</div>
-        ${priceChangeHtml}
-      </div>
-      <div class="stock-meta">
-        <div class="meta-item"><span class="meta-label">Market Cap</span><span class="meta-val">${mcapCr(a.marketCap)}</span></div>
-        <div class="meta-item"><span class="meta-label">P/E</span><span class="meta-val">${a.pe != null ? a.pe.toFixed(1) + 'x' : 'N/A'}</span></div>
-        <div class="meta-item"><span class="meta-label">EPS (TTM)</span><span class="meta-val">${a.eps != null ? '₹' + a.eps.toFixed(2) : 'N/A'}</span></div>
-        <div class="meta-item"><span class="meta-label">EBITDA Margin</span><span class="meta-val">${a.ebitdaMargin != null ? pct(a.ebitdaMargin) : 'N/A'}</span></div>
-        <div class="meta-item"><span class="meta-label">ROE</span><span class="meta-val">${a.roe != null ? pct(a.roe) : 'N/A'}</span></div>
-        <div class="meta-item"><span class="meta-label">D/E</span><span class="meta-val">${a.deRatio != null ? a.deRatio.toFixed(2) + 'x' : 'N/A'}</span></div>
-      </div>
-    </div>
+  const sbEntries = Object.entries(a.scoreBreakdown);
+  const labels = { growth: 'Growth', balanceSheet: 'Balance Sheet', cashFlow: 'Cash Flow', capEfficiency: 'Cap. Efficiency', governance: 'Governance', valuation: 'Valuation' };
+  const maxes = { growth: 25, balanceSheet: 20, cashFlow: 20, capEfficiency: 20, governance: 10, valuation: 5 };
+  const sbHtml = sbEntries.map(([k, val]) => {
+    const pf = (val / maxes[k] * 100);
+    return '<div style="background:#080c18;border-radius:6px;padding:8px 10px"><div style="font-size:10px;color:#475569;margin-bottom:4px">' + labels[k] + '</div><div style="font-size:13px;font-weight:700;color:#e2e8f0">' + val + '<span style="color:#475569;font-weight:400">/' + maxes[k] + '</span></div><div style="height:3px;background:#1e293b;border-radius:2px;margin-top:4px"><div style="height:3px;width:' + pf + '%;background:' + (pf > 70 ? '#34d399' : pf > 40 ? '#fbbf24' : '#f87171') + ';border-radius:2px"></div></div></div>';
+  }).join('');
 
-    <div class="score-section">
-      <div class="score-card ${scoreClass(a.totalScore)}">
-        <div class="score-num">${a.totalScore}</div>
-        <div class="score-label">Quality Score / 100</div>
-        <div style="font-size:12px;margin-top:8px;color:#64748b">${a.totalScore >= 85 ? '★ Elite Compounder' : a.totalScore >= 70 ? '♦ High Quality' : a.totalScore >= 60 ? '◆ Watchlist' : '✗ Reject'}</div>
-      </div>
-      <div class="category-card">
-        <div class="category-badge ${a.categoryClass}">${a.category}</div>
-        <div class="verdict">${a.verdict}</div>
-        <div class="verdict-desc">${a.verdictDesc}</div>
-        <div style="margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-          ${Object.entries(a.scoreBreakdown).map(([k, val]) => {
-            const labels = { growth: 'Growth', balanceSheet: 'Balance Sheet', cashFlow: 'Cash Flow', capEfficiency: 'Cap. Efficiency', governance: 'Governance', valuation: 'Valuation' };
-            const maxes = { growth: 25, balanceSheet: 20, cashFlow: 20, capEfficiency: 20, governance: 10, valuation: 5 };
-            const pf = (val / maxes[k] * 100);
-            return `<div style="background:#080c18;border-radius:6px;padding:8px 10px">
-              <div style="font-size:10px;color:#475569;margin-bottom:4px">${labels[k]}</div>
-              <div style="font-size:13px;font-weight:700;color:#e2e8f0">${val}<span style="color:#475569;font-weight:400">/${maxes[k]}</span></div>
-              <div style="height:3px;background:#1e293b;border-radius:2px;margin-top:4px"><div style="height:3px;width:${pf}%;background:${pf > 70 ? '#34d399' : pf > 40 ? '#fbbf24' : '#f87171'};border-radius:2px"></div></div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-    </div>
-
-    <div class="phases-grid">${phasesHtml}</div>
-
-    <div class="strengths-risks">
-      <div class="sr-card strengths">
-        <h3>Key Strengths</h3>
-        <ul class="sr-list">${a.strengths.map(s => `<li>${s}</li>`).join('')}</ul>
-      </div>
-      <div class="sr-card risks">
-        <h3>Key Risks</h3>
-        <ul class="sr-list">${a.risks.map(r => `<li>${r}</li>`).join('')}</ul>
-      </div>
-    </div>
-
-    <div class="output-section">
-      <h2>Full Analysis Output</h2>
-      <div class="output-grid">
-        ${outItems.map(o => `<div class="out-item"><div class="out-label">${o.l}</div><div class="out-val ${o.c}">${o.v}</div></div>`).join('')}
-      </div>
-    </div>
-
-    <div class="disclaimer">
-      Data sourced from Yahoo Finance. For educational purposes only. Not investment advice.<br>
-      Always verify promoter pledge, SEBI actions, and auditor notes from official NSE/BSE disclosures before investing.
-    </div>
-  `;
+  el.innerHTML =
+    '<div class="stock-header">' +
+      '<div><div class="stock-name">' + a.companyName + '</div><div class="stock-sub">' + a.symbol + ' · ' + a.exchange + ' · ' + a.sector + '</div></div>' +
+      '<div class="stock-price"><div class="price-val">' + (a.currentPrice != null ? '₹' + a.currentPrice.toFixed(2) : 'N/A') + '</div>' + priceChangeHtml + '</div>' +
+      '<div class="stock-meta">' +
+        '<div class="meta-item"><span class="meta-label">Market Cap</span><span class="meta-val">' + mcapCr(a.marketCap) + '</span></div>' +
+        '<div class="meta-item"><span class="meta-label">P/E</span><span class="meta-val">' + (a.pe != null ? a.pe.toFixed(1) + 'x' : 'N/A') + '</span></div>' +
+        '<div class="meta-item"><span class="meta-label">EPS (TTM)</span><span class="meta-val">' + (a.eps != null ? '₹' + a.eps.toFixed(2) : 'N/A') + '</span></div>' +
+        '<div class="meta-item"><span class="meta-label">EBITDA Margin</span><span class="meta-val">' + (a.ebitdaMargin != null ? pct(a.ebitdaMargin) : 'N/A') + '</span></div>' +
+        '<div class="meta-item"><span class="meta-label">ROE</span><span class="meta-val">' + (a.roe != null ? pct(a.roe) : 'N/A') + '</span></div>' +
+        '<div class="meta-item"><span class="meta-label">D/E</span><span class="meta-val">' + (a.deRatio != null ? a.deRatio.toFixed(2) + 'x' : 'N/A') + '</span></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="score-section">' +
+      '<div class="score-card ' + scoreClass(a.totalScore) + '"><div class="score-num">' + a.totalScore + '</div><div class="score-label">Quality Score / 100</div><div style="font-size:12px;margin-top:8px;color:#64748b">' + (a.totalScore >= 85 ? '★ Elite Compounder' : a.totalScore >= 70 ? '♦ High Quality' : a.totalScore >= 60 ? '◆ Watchlist' : '✗ Reject') + '</div></div>' +
+      '<div class="category-card"><div class="category-badge ' + a.categoryClass + '">' + a.category + '</div><div class="verdict">' + a.verdict + '</div><div class="verdict-desc">' + a.verdictDesc + '</div><div style="margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' + sbHtml + '</div></div>' +
+    '</div>' +
+    '<div class="phases-grid">' + phasesHtml + '</div>' +
+    '<div class="strengths-risks">' +
+      '<div class="sr-card strengths"><h3>Key Strengths</h3><ul class="sr-list">' + a.strengths.map(s => '<li>' + s + '</li>').join('') + '</ul></div>' +
+      '<div class="sr-card risks"><h3>Key Risks</h3><ul class="sr-list">' + a.risks.map(r => '<li>' + r + '</li>').join('') + '</ul></div>' +
+    '</div>' +
+    '<div class="output-section"><h2>Full Analysis Output</h2><div class="output-grid">' +
+      outItems.map(o => '<div class="out-item"><div class="out-label">' + o.l + '</div><div class="out-val ' + o.c + '">' + o.v + '</div></div>').join('') +
+    '</div></div>' +
+    '<div class="disclaimer">Data sourced from Yahoo Finance. For educational purposes only. Not investment advice.<br>Always verify promoter pledge, SEBI actions, and auditor notes from official NSE/BSE disclosures before investing.</div>';
 
   document.getElementById('results').style.display = 'block';
   document.getElementById('phase0').classList.add('open');
